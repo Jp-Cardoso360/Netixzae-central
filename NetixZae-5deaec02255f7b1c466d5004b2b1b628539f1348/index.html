@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="style.css" />
+    <script src="cadastro.js" defer></script>
+    <script src="dashboard.js" defer></script>
+    <script src="menu.js" defer></script>
+    <script src="gerarReceita.js"></script>
+    <script src="produtos-lista.js" defer></script>
+    
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+      integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+    <link rel="shortcut icon" href="img/NetixZae.png" type="image/x-icon" />
+    <title>NetixZae</title>
+  </head>
+  <body>
+    <header class="topo">
+      <i class="fa-solid fa-bars open" onclick="menuOpen()"></i>
+      <i class="fa-solid fa-xmark close" onclick="menuClose()"></i>
+      <h2>Sistema NetixZae</h2>
+      <img src="img/NetixZae.png" alt="" width="40px" />
+    </header>
+    <div class="menu-itens">
+      <h2>Gerenciamento</h2>
+      <ul>
+        <li onclick="conteiner1()">
+          <i class="fa-regular fa-building"></i>
+          DashBoard
+        </li>
+        <li onclick="conteiner2()">
+          <i class="fa-regular fa-address-card"></i>
+          Cadastrar
+        </li>
+        <li onclick="conteiner4()">
+          <i class="fa-solid fa-users"></i>
+          Nossos Clientes
+        </li>
+        <li onclick="conteiner3()">
+          <i class="fa-solid fa-file-invoice-dollar"></i>
+          Gerar Receita
+        </li>
+        <li onclick="conteiner5()">
+          <i class="fa-solid fa-pencil"></i>
+          Atualizar Produtos
+        </li>
+      <a href="https://meu-carrinho-login.netlify.app" target="_blank" rel="noopener noreferrer">
+        <li>
+          <i class="fa-solid fa-circle-user"></i>
+          Login
+        </li>
+      </a>
+    
+      </ul>
+      <span class="upadate">
+        <i class="fa-solid fa-circle-arrow-up"></i>
+        <br />
+        Sincronizar
+      </span>
+    </div>
+    <main class="conteiner-dashboard">
+      <h2>DashBoard NetixZae</h2>
+      <div id="total-usuarios">Carregando <br />usuários...</div>
+      <div id="total">
+        Carregando <br />
+        receita...
+      </div>
+    </main>
+    <main class="conteiner-cadastro">
+      <div class="cadastro">
+        <h2>Cadastro de usuários</h2>
+        <label for="nome">Nome <i class="fa-solid fa-user"></i></label>
+        <input type="text" name="nome" id="nome" />
+        <label for="WhatsApp">WhatsApp <i class="fa-brands fa-whatsapp"></i></label>
+        <input type="tel" name="WhatsApp" id="tel" />
+        <label for="email">Email <i class="fa-solid fa-envelope"></i></label>
+        <input type="email" name="email" id="email" />
+        <label for="password">Senha <i class="fa-solid fa-key"></i></label>
+        <input type="password" name="password" id="senha" />
+        <label for="color">Cor do sistema <i class="fa-solid fa-palette"></i></label>
+        <input type="color" id="corSistema" name="corSistema" />
+
+        <p class="link"></p>
+        <button onclick="criarConta()">Criar Conta</button>
+      </div>
+    </main>
+    <main class="conteiner-delete">
+      <i class="fa-solid fa-xmark" onclick="closeDel()"></i>
+      <h2>Apagar usuários</h2>
+      <input type="text" placeholder="Digite o ID do Usuário" id="idUser">
+      <button onclick="deleteUser()">Apagar Usuário</button>
+    </main>
+    <main class="conteiner-upUser">
+      <i class="fa-solid fa-xmark" onclick="closeUp()"></i>
+      <h2>Meta e planos</h2>
+ <div class="contentUP">
+     <label for="id">ID do Usuário</label>
+  <input type="text" placeholder="Digite o ID do Usuário" id="idUp">
+  <label for="meta">Meta do Usuário</label>
+  <input type="text" placeholder="Digite a meta" id="metaUp">
+  <label for="plano">Selecione um plano:</label>
+  <select id="plano" name="plano">
+    <option value="Básico">Plano Básico</option>
+    <option value="Completo">Plano Completo</option>
+  </select>
+  <button onclick="salvarMetas()">Salvar</button>
+ </div>
+    </main>
+    <main class="sucess">
+      <i class="fa-solid fa-circle-check"></i>
+      <h2 class="re-sucess">Conta criada com <br />sucesso!</h2>
+      <div class="dados">
+        <h2>Dados</h2>
+        <p class="email-res"></p>
+        <p class="senha-res"></p>
+        <p class="login-res"></p>
+        <p class="link-res"></p>
+      </div>
+     
+      <div class="btns">
+        <button onclick="conteiner3()">Gerar Receita</button>
+        <button onclick="conteiner2()">Criar outra conta</button>
+      </div>
+    </main>
+    <main class="conteiner-receita">
+      <h2>Gerar Receita</h2>
+      <label for="nome1">Nome</label>
+      <input type="text" class="nome" />
+      <label for="receita">Valor</label>
+      <input type="number" id="receita" />
+      <button onclick="gerarReceita()">Gerar Receita</button>
+  <a href="receitas.html" target="_blank" rel="noopener noreferrer" class="receitasGeradas">
+    Receitas Geradas
+  </a>
+    </main>
+    <main class="conteiner-cliente">
+      <i class="fa-solid fa-user-xmark" onclick="del()"></i>
+      <i class="fa-solid fa-wrench" onclick="up()"></i>
+      <h2>Nossos Clientes</h2>
+      <main class="conteiner-clientes">
+        <h2>Buscando Clientes</h2>
+      </main>
+    </main>
+    <main class="conteiner-produtos-user">
+      <h2>Atualizar Produtos</h2>
+      <div class="find-produtos">
+        <input type="text" placeholder="Digite o ID do usuário 🔎" class="id-user">
+        <button onclick="buscarProdutos()">Buscar</button>
+      </div>
+      <span class="newProduct">
+        <i class="fa-solid fa-plus"></i>
+        Adicionar Novo produto
+      </span>
+      <div class="produtos-list">
+   <h2>Começe digitando o ID...</h2>
+      </div>
+    </main>
+    <main class="edit">
+      <div class="content-edit">
+        <div class="top">
+          <img src="" alt="" width="60px" class="imgProduto">
+          <p class="nomeP">nome</p>
+          <i class="fa-solid fa-xmark closeEdit"></i>
+        </div>
+        <div class="form">
+          <label for="nome">Nome do produto</label>
+          <input type="text" id="att-nome" >
+          <label for="prince">Valor</label>
+          <input type="number" name="valor" id="att-valor">
+           <label for="description2">Descrição</label>
+          <input type="text" name="description2" id="description2">
+          <span class="btns-edit">
+            <button><i class="fa-solid fa-image"></i></button>
+            <button class="apagarProduto"><i class="fa-solid fa-trash"></i></button>
+          </span>
+          <button class="att-produtos" onclick="atualizarP()">Atualizar</button>
+        </div>
+      </div>
+    </main>
+    <main class="new-conteiner">
+      <div class="form-new">
+        <i class="fa-solid fa-xmark closeNew"></i>
+        <label for="nome">Nome do produto</label>
+        <input type="text" id="new-nome" >
+         <label for="description2">Descrição do produto</label>
+        <input type="description2" class="description2">
+        <label for="prince">Valor</label>
+        <input type="number" name="valor" id="new-valor">
+      <label for="linkUrl">Link da image</label>
+      <input type="text" name="" id="linkImg">
+        <button class="new-produto">Criar produto</button>
+      </div>
+    </main>
+    <main class="loading">
+      <i class="fa-solid fa-spinner load"></i>
+      <h2 class="loadMensage"></h2>
+    </main>
+  </body>
+</html>

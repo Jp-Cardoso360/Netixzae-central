@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="img/NetixZae.png" type="image/x-icon">
+    <title>Tabela de Receitas</title>
+    <style>
+        table {
+            width: 100%;
+            max-width: 800px;
+            border-collapse: collapse;
+            margin: 20px auto;
+
+        }
+        th, td {
+            border: 1px solid #000;
+            text-align: center;
+            padding: 8px;
+        }
+        th {
+            background-color: rgb(97, 2, 97);
+            color: white;
+        }
+        tr:nth-child(odd) {
+  background-color: rgba(220, 220, 220, 0.274); 
+}
+
+tr:nth-child(even) {
+  background-color: white; 
+}
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center;">Tabela de Receitas</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Valor</th>
+                <th>Data</th>
+            </tr>
+        </thead>
+        <tbody id="receitas-body">
+         
+        </tbody>
+    </table>
+    <script>
+       
+        async function carregarReceitas() {
+            try {
+                const response = await fetch('https://netix-zae-api.vercel.app/receita');
+                const data = await response.json();
+    
+                const tbody = document.getElementById('receitas-body');
+                tbody.innerHTML = '';
+    
+                data.forEach(receita => {
+                    const tr = document.createElement('tr');
+    
+                    const tdNome = document.createElement('td');
+                    tdNome.textContent = receita.nome;
+    
+                    const tdValor = document.createElement('td');
+                   
+                    tdValor.textContent = receita.valor.toLocaleString('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL'
+                    });
+    
+                    const tdData = document.createElement('td');
+                    const dataCriacao = new Date(receita.data);
+                    tdData.textContent = dataCriacao.toLocaleString('pt-BR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit'
+                    });
+    
+                    tr.appendChild(tdNome);
+                    tr.appendChild(tdValor);
+                    tr.appendChild(tdData);
+    
+                    tbody.appendChild(tr);
+                });
+            } catch (error) {
+                console.error('Erro ao carregar receitas:', error);
+            }
+        }
+    
+    
+        window.onload = carregarReceitas;
+    </script>
+    
+</body>
+</html>
