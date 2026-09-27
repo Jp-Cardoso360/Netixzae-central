@@ -54,19 +54,80 @@ async function criarConta() {
       const dados_senha = document.querySelector(".senha-res");
       const dados_link = document.querySelector(".link-res");
       const login_res = document.querySelector(".login-res");
+      const nomeCliente = String(res.user.nome || nome || "cliente").trim();
+      const linkLogin = "https://meu-carrinho-login.netlify.app";
+      const linkSistema = `https://comercio-zap.netlify.app/${res.user._id}`;
 
       cadastro.style = "display:none;";
       sucess.style = "display:flex;";
 
-      dados_email.innerHTML = `<strong>Email:</strong> <br> ${res.user.email}`;
-      dados_senha.innerHTML = `<strong>Senha</strong>:<br> ${senha}`;
-      login_res.innerHTML = `<strong>Link login:</strong> <br> <a href ="https://meu-carrinho-login.netlify.app" target="_blank">https://meu-carrinho-login.netlify.app</a>`;
-      dados_link.innerHTML = ` <strong>Link do site:</strong> <br> <a href ="https://comercio-zap.netlify.app/${res.user._id}" target="_blank">https://comercio-zap.netlify.app/${res.user._id}</a>`;
+      dados_email.replaceChildren();
+      dados_email.innerHTML = `<strong>E-mail</strong><span></span>`;
+      dados_email.querySelector("span").textContent = res.user.email || email;
+      dados_senha.replaceChildren();
+      dados_senha.innerHTML = `<strong>Senha</strong><span></span>`;
+      dados_senha.querySelector("span").textContent = senha;
+      login_res.replaceChildren();
+      login_res.innerHTML = `<strong>Portal de acesso</strong><a target="_blank" rel="noopener noreferrer"></a>`;
+      login_res.querySelector("a").href = linkLogin;
+      login_res.querySelector("a").textContent = linkLogin;
+      dados_link.replaceChildren();
+      dados_link.innerHTML = `<strong>Link do sistema</strong><a target="_blank" rel="noopener noreferrer"></a>`;
+      dados_link.querySelector("a").href = linkSistema;
+      dados_link.querySelector("a").textContent = linkSistema;
+
+      document.querySelector(".mensagem-saudacao").textContent = `Olá, ${nomeCliente}!`;
+      document.querySelector(".mensagem-link").textContent = `Link do seu sistema: ${linkSistema}`;
+      document.querySelector(".mensagem-login").textContent = `Portal de acesso: ${linkLogin}`;
+      document.querySelector(".mensagem-email").textContent = `E-mail: ${res.user.email || email}`;
+      document.querySelector(".mensagem-senha").textContent = `Senha: ${senha}`;
+      document.querySelector(".share-whatsapp").dataset.telefone = tel;
   } catch (error) {
     console.error("Erro encontrado:", error);
     alert(error.message || "Tente novamente");
   } finally {
     load.style.display = "none";
+  }
+}
+
+function getMensagemCliente() {
+  const message = document.querySelector("#mensagemCliente");
+  return [...message.querySelectorAll("p, li")]
+    .map((element) => element.textContent.trim())
+    .filter(Boolean)
+    .join("\n")
+    .replace(/\n(?=\d+\.)/g, "\n");
+}
+
+function enviarMensagemWhatsApp() {
+  const button = document.querySelector(".share-whatsapp");
+  const phone = button.dataset.telefone.replace(/\D/g, "");
+  const message = encodeURIComponent(getMensagemCliente());
+  const whatsappUrl = phone
+    ? `https://wa.me/${phone}?text=${message}`
+    : `https://wa.me/?text=${message}`;
+
+  window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+}
+
+async function copiarMensagemCliente() {
+  try {
+    await navigator.clipboard.writeText(getMensagemCliente());
+    const button = document.querySelector(".share-copy");
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fa-solid fa-check" aria-hidden="true"></i> Mensagem copiada';
+    setTimeout(() => {
+      button.innerHTML = originalText;
+    }, 2000);
+  } catch (error) {
+    const temporaryField = document.createElement("textarea");
+    temporaryField.value = getMensagemCliente();
+    temporaryField.style.position = "fixed";
+    temporaryField.style.opacity = "0";
+    document.body.appendChild(temporaryField);
+    temporaryField.select();
+    document.execCommand("copy");
+    temporaryField.remove();
   }
 }
 

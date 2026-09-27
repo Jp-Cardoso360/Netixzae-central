@@ -142,16 +142,45 @@
  </div>
     </main>
     <main class="sucess">
-      <i class="fa-solid fa-circle-check"></i>
-      <h2 class="re-sucess">Conta criada com <br />sucesso!</h2>
-      <div class="dados">
-        <h2>Dados</h2>
-        <p class="email-res"></p>
-        <p class="senha-res"></p>
-        <p class="login-res"></p>
-        <p class="link-res"></p>
-      </div>
-     
+      <section class="sucess-card">
+        <header class="sucess-header">
+          <span class="sucess-icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></span>
+          <p class="sucess-eyebrow">CONTA CONFIGURADA</p>
+          <h2 class="re-sucess">Sistema pronto para usar</h2>
+          <p class="sucess-intro">Confira os dados de acesso e envie as instruções ao cliente.</p>
+        </header>
+        <div class="share-message__body" id="mensagemCliente">
+            <p class="mensagem-saudacao"></p>
+            <p>Conta criada com sucesso! Seguem os dados para acessar seu sistema:</p>
+            <p class="mensagem-link"></p>
+            <p class="mensagem-login"></p>
+            <p class="mensagem-email"></p>
+            <p class="mensagem-senha"></p>
+        </div>
+        <div class="share-message__actions">
+          <button type="button" class="share-whatsapp" aria-label="Enviar mensagem pelo WhatsApp" onclick="enviarMensagemWhatsApp()">
+            <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
+            <span class="share-label--full">Enviar pelo WhatsApp</span>
+            <span class="share-label--short">WhatsApp</span>
+            <span class="share-label--narrow">Enviar</span>
+          </button>
+          <button type="button" class="share-copy" aria-label="Copiar mensagem" onclick="copiarMensagemCliente()">
+            <i class="fa-regular fa-copy" aria-hidden="true"></i>
+            <span class="share-label--full">Copiar mensagem</span>
+            <span class="share-label--short">Copiar</span>
+            <span class="share-label--narrow">Copiar</span>
+          </button>
+        </div>
+        <section class="dados" aria-labelledby="dados-acesso-title">
+          <h3 id="dados-acesso-title">Dados de acesso</h3>
+          <div class="dados-acesso-grid">
+            <p class="email-res"></p>
+            <p class="senha-res"></p>
+            <p class="login-res"></p>
+            <p class="link-res"></p>
+          </div>
+        </section>
+      </section>
       <div class="btns">
         <button onclick="conteiner3()">Gerar Receita</button>
         <button onclick="conteiner2()">Criar outra conta</button>
