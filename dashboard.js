@@ -12,9 +12,9 @@ async function contarUsuarios() {
 
     const totalUsuarios = usuarios.length;
 
-    document.getElementById(
-      "total-usuarios"
-    ).innerHTML = `Usuários: <br> ${totalUsuarios}`;
+    document.querySelector(
+      "#total-usuarios .dashboard-indicador__valor"
+    ).textContent = totalUsuarios;
   } catch (error) {
     console.error("Erro:", error.message);
   }
@@ -41,9 +41,9 @@ async function buscarReceitas() {
       currency: "BRL",
     }).format(total);
 
-    document.getElementById(
-      "total"
-    ).innerHTML = `Receita: <br> ${totalFormatado}`;
+    document.querySelector(
+      "#total .dashboard-indicador__valor"
+    ).textContent = totalFormatado;
   } catch (error) {
     console.error("Erro:", error.message);
   }
@@ -52,6 +52,76 @@ contarUsuarios();
 buscarReceitas();
 
 const apiURL = "https://netix-zae-api.vercel.app/sessions-list-counts";
+const valorPlanoCompleto = 39.9;
+const formatarMoeda = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+});
+
+async function atualizarResumoPlanoCompleto() {
+  const countElement = document.querySelector("#dashboard-planos-contagem");
+  const totalElement = document.querySelector("#dashboard-planos-total");
+  const individualValueElement = document.querySelector(
+    "#dashboard-planos-valor-individual"
+  );
+
+  try {
+    const [accountsResponse, plansResponse] = await Promise.all([
+      fetch(apiURL),
+      fetch("https://netix-zae-api.vercel.app/metas/list"),
+    ]);
+
+    if (!accountsResponse.ok || !plansResponse.ok) {
+      throw new Error("Não foi possível carregar os planos dos clientes.");
+    }
+
+    const [accounts, plans] = await Promise.all([
+      accountsResponse.json(),
+      plansResponse.json(),
+    ]);
+
+    if (!Array.isArray(accounts) || !Array.isArray(plans)) {
+      throw new Error("A resposta da API de planos é inválida.");
+    }
+
+    const completePlanClients = accounts.filter((account) =>
+      plans.some(
+        (plan) =>
+          plan.user_id === account._id &&
+          String(plan.plano || "").trim().toLocaleLowerCase("pt-BR") === "completo"
+      )
+    );
+
+    countElement.textContent = `${completePlanClients.length} ${completePlanClients.length === 1 ? "cliente" : "clientes"} com este plano`;
+    totalElement.textContent = formatarMoeda.format(
+      completePlanClients.length * valorPlanoCompleto
+    );
+    individualValueElement.textContent = formatarMoeda.format(valorPlanoCompleto);
+  } catch (error) {
+    console.error("Erro ao carregar recorrência do Plano Completo:", error);
+    countElement.textContent = "Não foi possível carregar";
+    totalElement.textContent = "—";
+    individualValueElement.textContent = "—";
+  }
+}
+
+atualizarResumoPlanoCompleto();
+
+function createClientField(labelText, value) {
+  const field = document.createElement("div");
+  field.className = "client-field";
+
+  const label = document.createElement("span");
+  label.className = "client-field__label";
+  label.textContent = labelText;
+
+  const content = document.createElement("span");
+  content.className = "client-field__value";
+  content.textContent = value || "Não informado";
+
+  field.append(label, content);
+  return field;
+}
 
 async function DisplayAccounts() {
   try {
@@ -63,51 +133,138 @@ async function DisplayAccounts() {
     const metas = await metasResponse.json();
 
     const container = document.querySelector(".conteiner-clientes");
-    container.innerHTML = "";
+    const searchInput = document.querySelector("#buscaCliente");
+    const planFilter = document.querySelector("#filtroPlanoClientes");
+    const count = document.querySelector("#clientes-count");
+    const cards = [];
+    container.replaceChildren();
 
-    // Iterar pelos usuários
     accounts.forEach((account) => {
-      const detailsElement = document.createElement("details");
-
-      const summary = document.createElement("summary");
-      summary.textContent = account.nome || "Nome não disponível";
-      detailsElement.appendChild(summary);
-
       const userMeta = metas.find((meta) => meta.user_id === account._id);
-      if (userMeta) {
-        const plano = document.createElement("p");
-        plano.innerHTML = `Plano: ${userMeta.plano || "Plano não definido"}`;
-        detailsElement.appendChild(plano);
+      const planName = String(userMeta?.plano || "").trim() || "Sem plano";
+      const planFilterValue = planName === "Sem plano"
+        ? "sem-plano"
+        : planName
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLocaleLowerCase("pt-BR");
+      const goal = userMeta?.meta || "Meta não definida";
+      const phone = String(account.tel || "");
+      const card = document.createElement("article");
+      card.className = "client-card";
+
+      const header = document.createElement("div");
+      header.className = "client-card__header";
+
+      const avatar = document.createElement("span");
+      avatar.className = "client-card__avatar";
+      avatar.setAttribute("aria-hidden", "true");
+      avatar.textContent = (account.nome || "?").trim().charAt(0).toUpperCase();
+
+      const identity = document.createElement("div");
+      identity.className = "client-card__identity";
+
+      const name = document.createElement("h3");
+      name.textContent = account.nome || "Nome não disponível";
+
+      const identifier = document.createElement("span");
+      identifier.className = "client-card__identifier";
+      identifier.textContent = `ID ${account._id || "não disponível"}`;
+
+      identity.append(name, identifier);
+
+      const planBadge = document.createElement("span");
+      planBadge.className = `client-card__plan-badge${planName !== "Sem plano" ? " is-active" : ""}`;
+      planBadge.textContent = planName;
+
+      header.append(avatar, identity, planBadge);
+
+      const fields = document.createElement("div");
+      fields.className = "client-card__fields";
+      fields.append(
+        createClientField("Telefone", phone),
+        createClientField("E-mail", account.email)
+      );
+
+      const plan = document.createElement("div");
+      plan.className = "client-card__goal";
+
+      const goalLabel = document.createElement("span");
+      goalLabel.className = "client-field__label";
+      goalLabel.textContent = "Meta do cliente";
+
+      const goalValue = document.createElement("strong");
+      goalValue.textContent = goal;
+      plan.append(goalLabel, goalValue);
+
+      const footer = document.createElement("div");
+      footer.className = "client-card__footer";
+
+      const systemLink = document.createElement("a");
+      systemLink.className = "client-card__system-link";
+      systemLink.href = `https://comercio-zap.netlify.app/${encodeURIComponent(account._id || "")}`;
+      systemLink.target = "_blank";
+      systemLink.rel = "noopener noreferrer";
+      systemLink.innerHTML = 'Acessar sistema <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>';
+
+      const whatsapp = document.createElement("a");
+      whatsapp.className = "client-card__whatsapp";
+      const phoneDigits = phone.replace(/\D/g, "");
+      if (phoneDigits) {
+        whatsapp.href = `https://wa.me/${phoneDigits}`;
+        whatsapp.target = "_blank";
+        whatsapp.rel = "noopener noreferrer";
+        whatsapp.setAttribute("aria-label", `Conversar com ${account.nome || "cliente"} pelo WhatsApp`);
+        whatsapp.innerHTML = '<i class="fa-brands fa-whatsapp" aria-hidden="true"></i>';
       } else {
-        const plano = document.createElement("p");
-        plano.innerHTML = "Plano:<br> Plano não definido";
-        detailsElement.appendChild(plano);
+        whatsapp.textContent = "Sem telefone";
       }
 
-      const p = document.createElement("p");
-      p.innerHTML = `Link do sistema:`;
-      detailsElement.appendChild(p);
+      footer.append(systemLink, whatsapp);
+      card.append(header, fields, plan, footer);
+      container.appendChild(card);
 
-      const link = document.createElement("a");
-      link.href = `https://comercio-zap.netlify.app/${account._id}`;
-      link.innerHTML = `https://comercio-zap.netlify.app/${account._id}`;
-      detailsElement.appendChild(link);
-
-      const id = document.createElement("p");
-      id.innerHTML = `ID:<br> ${account._id}<br>`;
-      detailsElement.appendChild(id);
-
-      const whatsappLink = document.createElement("a");
-      whatsappLink.href = account.tel ? `https://wa.me/${account.tel}` : "#";
-      whatsappLink.innerHTML = account.tel
-        ? `<i class="fa-brands fa-whatsapp"></i>`
-        : "Telefone não disponível";
-      detailsElement.appendChild(whatsappLink);
-
-      container.appendChild(detailsElement);
+      const searchableText = [account.nome, phone, account.email, account._id, planName, goal]
+        .filter(Boolean)
+        .join(" ")
+        .toLocaleLowerCase("pt-BR");
+      cards.push({ element: card, searchableText, planFilterValue });
     });
+
+    const emptyState = document.createElement("p");
+    emptyState.className = "clientes-empty";
+    emptyState.hidden = true;
+    container.appendChild(emptyState);
+
+    function filterClients() {
+      const query = searchInput.value.trim().toLocaleLowerCase("pt-BR");
+      const selectedPlan = planFilter.value;
+      let visibleCount = 0;
+
+      cards.forEach(({ element, searchableText, planFilterValue }) => {
+        const matchesSearch = searchableText.includes(query);
+        const matchesPlan = selectedPlan === "todos" || planFilterValue === selectedPlan;
+        const isVisible = matchesSearch && matchesPlan;
+        element.hidden = !isVisible;
+        if (isVisible) visibleCount += 1;
+      });
+
+      count.textContent = visibleCount;
+      emptyState.hidden = visibleCount > 0;
+      emptyState.textContent = !accounts.length
+        ? "Nenhum cliente cadastrado."
+        : query || selectedPlan !== "todos"
+          ? "Nenhum cliente corresponde aos filtros selecionados."
+          : "Nenhum cliente encontrado.";
+    }
+
+    searchInput.oninput = filterClients;
+    planFilter.onchange = filterClients;
+    filterClients();
   } catch (error) {
     console.error("Erro ao buscar os dados:", error);
+    const container = document.querySelector(".conteiner-clientes");
+    container.innerHTML = '<p class="clientes-empty">Não foi possível carregar os clientes.</p>';
   }
 }
 
@@ -122,6 +279,7 @@ upadate.addEventListener("click", function () {
   loadMensage.innerHTML = "Atualizando..";
   buscarReceitas();
   contarUsuarios();
+  atualizarResumoPlanoCompleto();
   DisplayAccounts();
 
   setTimeout(function () {

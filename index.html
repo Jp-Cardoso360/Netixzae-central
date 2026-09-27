@@ -18,14 +18,14 @@
       referrerpolicy="no-referrer"
     />
     <link rel="shortcut icon" href="img/NetixZae.png" type="image/x-icon" />
-    <title>NetixZae</title>
+    <title>NetixZae ADM Geral</title>
   </head>
   <body>
     <header class="topo">
       <i class="fa-solid fa-bars open" onclick="menuOpen()"></i>
       <i class="fa-solid fa-xmark close" onclick="menuClose()"></i>
-      <h2>Sistema NetixZae</h2>
-      <img src="img/NetixZae.png" alt="" width="40px" />
+      <h2>NetixZae <span>ADM Geral</span></h2>
+      <img src="img/NetixZae.png" alt="Logo NetixZae" width="40px" />
     </header>
     <div class="menu-itens">
       <h2>Gerenciamento</h2>
@@ -66,11 +66,40 @@
     </div>
     <main class="conteiner-dashboard">
       <h2>DashBoard NetixZae</h2>
-      <div id="total-usuarios">Carregando <br />usuários...</div>
-      <div id="total">
-        Carregando <br />
-        receita...
+      <div id="total-usuarios" class="dashboard-indicador">
+        <span class="dashboard-indicador__rotulo">
+          <i class="fa-solid fa-users" aria-hidden="true"></i>
+          Clientes cadastrados
+        </span>
+        <strong class="dashboard-indicador__valor">Carregando...</strong>
+        <span class="dashboard-indicador__nota">Contas registradas no sistema</span>
       </div>
+      <div id="total" class="dashboard-indicador">
+        <span class="dashboard-indicador__rotulo">
+          <i class="fa-solid fa-receipt" aria-hidden="true"></i>
+          Taxa de implantação
+        </span>
+        <strong class="dashboard-indicador__valor">Carregando...</strong>
+        <span class="dashboard-indicador__nota">Total das taxas registradas</span>
+      </div>
+      <section class="dashboard-planos" aria-labelledby="dashboard-planos-titulo">
+        <header class="dashboard-planos__header">
+          <hgroup class="dashboard-planos__titulo">
+            <p>RECORRÊNCIA MENSAL</p>
+            <h3 id="dashboard-planos-titulo">Plano Completo</h3>
+            <p id="dashboard-planos-contagem">Carregando quantidade...</p>
+          </hgroup>
+          <aside class="dashboard-planos__total">
+            <span>Total recorrente</span>
+            <strong id="dashboard-planos-total">Carregando...</strong>
+          </aside>
+        </header>
+        <p class="dashboard-planos__individual">
+          Valor por cliente
+          <strong id="dashboard-planos-valor-individual">Carregando...</strong>
+          <span>/ mês</span>
+        </p>
+      </section>
     </main>
     <main class="conteiner-cadastro">
       <div class="cadastro">
@@ -140,62 +169,125 @@
   </a>
     </main>
     <main class="conteiner-cliente">
-      <i class="fa-solid fa-user-xmark" onclick="del()"></i>
-      <i class="fa-solid fa-wrench" onclick="up()"></i>
-      <h2>Nossos Clientes</h2>
-      <main class="conteiner-clientes">
-        <h2>Buscando Clientes</h2>
-      </main>
+      <header class="clientes-header">
+        <div>
+          <p class="clientes-eyebrow">Gestão de contas</p>
+          <h2>Nossos Clientes</h2>
+        </div>
+        <div class="clientes-actions">
+          <button class="customer-action customer-action--danger" type="button" onclick="del()" aria-label="Excluir cliente" title="Excluir cliente">
+            <i class="fa-solid fa-user-xmark" aria-hidden="true"></i>
+          </button>
+          <button class="customer-action" type="button" onclick="up()" aria-label="Editar plano e meta" title="Editar plano e meta">
+            <i class="fa-solid fa-wrench" aria-hidden="true"></i>
+          </button>
+        </div>
+      </header>
+      <div class="clientes-toolbar">
+        <label class="clientes-search" for="buscaCliente">
+          <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+          <input type="search" id="buscaCliente" placeholder="Buscar por nome, telefone, e-mail ou ID" autocomplete="off" />
+        </label>
+        <label class="clientes-filter" for="filtroPlanoClientes">
+          <i class="fa-solid fa-filter" aria-hidden="true"></i>
+          <select id="filtroPlanoClientes">
+            <option value="todos">Todos os planos</option>
+            <option value="completo">Plano Completo</option>
+            <option value="basico">Plano Básico</option>
+            <option value="sem-plano">Sem plano</option>
+          </select>
+        </label>
+        <span class="clientes-total"><strong id="clientes-count">0</strong> clientes</span>
+      </div>
+      <section class="conteiner-clientes" aria-live="polite">
+        <p class="clientes-empty">Buscando clientes...</p>
+      </section>
     </main>
     <main class="conteiner-produtos-user">
-      <h2>Atualizar Produtos</h2>
-      <div class="find-produtos">
-        <input type="text" placeholder="Digite o ID do usuário 🔎" class="id-user">
-        <button onclick="buscarProdutos()">Buscar</button>
+      <header class="products-heading">
+        <div>
+          <p class="products-eyebrow">CATÁLOGO POR CLIENTE</p>
+          <h2>Atualizar Produtos</h2>
+        </div>
+        <button type="button" class="newProduct" hidden disabled>
+          <i class="fa-solid fa-plus" aria-hidden="true"></i>
+          Adicionar produto
+        </button>
+      </header>
+      <div class="products-toolbar">
+        <div class="products-client-picker">
+          <label for="clienteProduto">Cliente</label>
+          <div class="products-client-input">
+            <i class="fa-solid fa-user" aria-hidden="true"></i>
+            <input type="search" id="clienteProduto" list="clientesProdutos" placeholder="Busque pelo nome do cliente" autocomplete="off">
+            <datalist id="clientesProdutos"></datalist>
+          </div>
+        </div>
+        <button type="button" class="products-load" onclick="buscarProdutos()">
+          <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+          Buscar produtos
+        </button>
       </div>
-      <span class="newProduct">
-        <i class="fa-solid fa-plus"></i>
-        Adicionar Novo produto
-      </span>
+      <details class="products-manual-id">
+        <summary>Prefere informar o ID do cliente?</summary>
+        <div class="products-manual-id__form">
+          <label for="idProdutoManual">ID do cliente</label>
+          <input type="text" id="idProdutoManual" class="id-user" placeholder="Cole o ID do cliente">
+          <button type="button" onclick="buscarProdutos()">Carregar pelo ID</button>
+        </div>
+      </details>
+      <div class="products-feedback" id="productsFeedback" role="status">Selecione um cliente para começar.</div>
       <div class="produtos-list">
-   <h2>Começe digitando o ID...</h2>
+        <div class="products-empty">
+          <i class="fa-solid fa-box-open" aria-hidden="true"></i>
+          <h3>Nenhum cliente selecionado</h3>
+          <p>Busque pelo nome do cliente para visualizar e editar os produtos.</p>
+        </div>
       </div>
     </main>
     <main class="edit">
-      <div class="content-edit">
+      <section class="content-edit" role="dialog" aria-modal="true" aria-labelledby="produto-modal-title">
         <div class="top">
           <img src="" alt="" width="60px" class="imgProduto">
           <p class="nomeP">nome</p>
-          <i class="fa-solid fa-xmark closeEdit"></i>
+          <button type="button" class="closeEdit" aria-label="Fechar edição" title="Fechar edição">
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+          </button>
         </div>
+        <h2 id="produto-modal-title">Editar produto</h2>
         <div class="form">
-          <label for="nome">Nome do produto</label>
-          <input type="text" id="att-nome" >
-          <label for="prince">Valor</label>
-          <input type="number" name="valor" id="att-valor">
-           <label for="description2">Descrição</label>
-          <input type="text" name="description2" id="description2">
-          <span class="btns-edit">
-            <button><i class="fa-solid fa-image"></i></button>
-            <button class="apagarProduto"><i class="fa-solid fa-trash"></i></button>
-          </span>
-          <button class="att-produtos" onclick="atualizarP()">Atualizar</button>
+          <label for="att-nome">Nome do produto</label>
+          <input type="text" id="att-nome" autocomplete="off">
+          <label for="att-valor">Preço (R$)</label>
+          <input type="number" name="valor" id="att-valor" min="0" step="0.01">
+          <label for="description2">Descrição</label>
+          <textarea name="description2" id="description2" rows="3"></textarea>
+          <div class="product-edit-actions">
+            <button type="button" class="apagarProduto">
+              <i class="fa-solid fa-trash" aria-hidden="true"></i>
+              Excluir
+            </button>
+            <button type="button" class="att-produtos">Salvar alterações</button>
+          </div>
         </div>
-      </div>
+      </section>
     </main>
     <main class="new-conteiner">
-      <div class="form-new">
-        <i class="fa-solid fa-xmark closeNew"></i>
-        <label for="nome">Nome do produto</label>
-        <input type="text" id="new-nome" >
-         <label for="description2">Descrição do produto</label>
-        <input type="description2" class="description2">
-        <label for="prince">Valor</label>
-        <input type="number" name="valor" id="new-valor">
-      <label for="linkUrl">Link da image</label>
-      <input type="text" name="" id="linkImg">
-        <button class="new-produto">Criar produto</button>
-      </div>
+      <section class="form-new" role="dialog" aria-modal="true" aria-labelledby="novo-produto-title">
+        <button type="button" class="closeNew" aria-label="Fechar cadastro" title="Fechar cadastro">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+        <h2 id="novo-produto-title">Adicionar produto</h2>
+        <label for="new-nome">Nome do produto</label>
+        <input type="text" id="new-nome" autocomplete="off">
+        <label for="new-description">Descrição do produto</label>
+        <textarea id="new-description" rows="3"></textarea>
+        <label for="new-valor">Preço (R$)</label>
+        <input type="number" name="valor" id="new-valor" min="0" step="0.01">
+        <label for="linkImg">Link da imagem</label>
+        <input type="url" id="linkImg" placeholder="https://...">
+        <button type="button" class="new-produto">Criar produto</button>
+      </section>
     </main>
     <main class="loading">
       <i class="fa-solid fa-spinner load"></i>

@@ -71,29 +71,40 @@ async function criarConta() {
 }
 
 async function deleteUser() {
-document.getElementById("idUser").value = "";
-  if (idUser == "") {
+  const userIdInput = document.getElementById("idUser");
+  const userId = userIdInput.value.trim();
+
+  if (!userId) {
     alert("Preencha todos os campos");
+    userIdInput.focus();
     return;
   }
+
+  const deleteButton = document.querySelector(".conteiner-delete button");
+  deleteButton.disabled = true;
+
   try {
-    const req = await fetch(`${urlNetixZae}/users/${idUser}`, {
+    const response = await fetch(`${urlNetixZae}/users/${encodeURIComponent(userId)}`, {
       method: "DELETE",
       headers: {
         "Content-type": "application/json",
       },
     });
+    const result = await response.json().catch(() => ({}));
 
-    if (!req.ok) {
-      console.error("Erro na api");
+    if (!response.ok) {
+      throw new Error(result.message || `Erro na API: ${response.status}`);
     }
 
-    const res = await req.json();
-
-    alert(res.message);
-    idUser.value = "";
-  } catch {
-    alert("Erro ao excluir");
+    userIdInput.value = "";
+    alert(result.message || "Usuário apagado com sucesso.");
+    closeDel();
+    await Promise.all([DisplayAccounts(), contarUsuarios()]);
+  } catch (error) {
+    console.error("Erro ao excluir usuário:", error);
+    alert(error.message || "Erro ao excluir usuário.");
+  } finally {
+    deleteButton.disabled = false;
   }
 }
 

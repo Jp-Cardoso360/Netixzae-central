@@ -1,64 +1,158 @@
 const urlApiList = "https://netix-zae-api.vercel.app";
+const productClientIds = new Map();
+const productCurrency = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+});
+const clientPicker = document.querySelector("#clienteProduto");
+const clientIdInput = document.querySelector(".id-user");
+const productsList = document.querySelector(".produtos-list");
+const productsFeedback = document.querySelector("#productsFeedback");
+const addProductButton = document.querySelector(".newProduct");
 
-// Função para buscar produtos com base no ID do usuário
-async function buscarProdutos() {
-  // Obtém o valor digitado no campo de ID do usuário
-  const idInput = document.querySelector(".id-user");
-  const id = idInput.value;
+function showProductsMessage(title, detail = "") {
+  const message = document.createElement("div");
+  message.className = "products-empty";
 
-  // Verifica se um ID foi fornecido
-  if (!id) {
-    alert("Por favor, insira um ID válido.");
-    return;
+  const heading = document.createElement("h3");
+  heading.textContent = title;
+  message.appendChild(heading);
+
+  if (detail) {
+    const description = document.createElement("p");
+    description.textContent = detail;
+    message.appendChild(description);
   }
 
+  productsList.replaceChildren(message);
+}
+
+function setProductsFeedback(message, state = "") {
+  productsFeedback.textContent = message;
+  productsFeedback.dataset.state = state;
+}
+
+async function carregarClientesProdutos() {
   try {
-    console.log("Requisitando dados da API para ID:", id);
-    
-    const req = await fetch(`${urlApiList}/dashboard/${id}`);
-    const res = await req.json();
-    
-    console.log("Resposta da API:", res);
+    const response = await fetch(`${urlApiList}/sessions-list-counts`);
+    if (!response.ok) throw new Error(`Erro na API: ${response.status}`);
 
-    // Verifica se a resposta é válida e contém produtos
-    if (!res || !Array.isArray(res) || res.length === 0) {
-      alert("Nenhum produto encontrado para este ID.");
+    const clients = await response.json();
+    const options = document.querySelector("#clientesProdutos");
+    options.replaceChildren();
+
+    clients.forEach((client) => {
+      const id = String(client._id || "");
+      if (!id) return;
+
+      const option = document.createElement("option");
+      option.value = `${client.nome || "Cliente sem nome"} · ${id.slice(-6)}`;
+      options.appendChild(option);
+      productClientIds.set(option.value, id);
+    });
+  } catch (error) {
+    setProductsFeedback("Não foi possível carregar os clientes. Você ainda pode informar o ID manualmente.", "error");
+    console.error("Erro ao carregar clientes:", error);
+  }
+}
+
+clientPicker.addEventListener("change", () => {
+  const selectedId = productClientIds.get(clientPicker.value);
+  if (selectedId) clientIdInput.value = selectedId;
+});
+
+clientIdInput.addEventListener("input", () => {
+  if (clientIdInput.value.trim()) clientPicker.value = "";
+});
+
+async function buscarProdutos() {
+  const manualId = clientIdInput.value.trim();
+  const selectedId = productClientIds.get(clientPicker.value);
+  const id = manualId || selectedId;
+
+  if (!id) {
+    setProductsFeedback("Selecione um cliente ou informe o ID para continuar.", "error");
+    return;
+  }
+  if (selectedId && !manualId) clientIdInput.value = selectedId;
+
+  const loadButton = document.querySelector(".products-load");
+  loadButton.disabled = true;
+  addProductButton.hidden = true;
+  setProductsFeedback("Carregando produtos...");
+  showProductsMessage("Buscando produtos...");
+
+  try {
+    const response = await fetch(`${urlApiList}/dashboard/${encodeURIComponent(id)}`);
+    if (!response.ok) throw new Error(`Erro na API: ${response.status}`);
+
+    const products = await response.json();
+    if (!Array.isArray(products)) throw new Error("A resposta da API é inválida.");
+
+    addProductButton.hidden = false;
+    addProductButton.disabled = false;
+    setProductsFeedback(`${products.length} ${products.length === 1 ? "produto encontrado" : "produtos encontrados"}.`);
+
+    if (products.length === 0) {
+      showProductsMessage("Este cliente ainda não tem produtos.", "Use “Adicionar produto” para criar o primeiro item do catálogo.");
       return;
     }
 
-    // Renderiza os produtos
-    const listagem = document.querySelector(".produtos-list");
-    if (!listagem) {
-      console.error("Elemento '.produtos-list' não encontrado no DOM.");
-      return;
-    }
+    const fragment = document.createDocumentFragment();
+    products.forEach((product) => {
+      const card = document.createElement("article");
+      card.className = "produto product-card";
 
-    const produtosRender = res
-      .map((produto) => `
-        <div class="produto">
-          <img src="${produto.thumbnail_url}" alt="Imagem do produto" width="70px">
-          <p>${produto.description}</p>
-          <i class="fa-solid fa-gear" onclick="openEdit('${produto._id}', '${produto.description}', '${produto.price}', '${produto.thumbnail_url}', '${produto.description2}')"></i>
-        </div>
-      `)
-      .join("");
+      const imageFrame = document.createElement("div");
+      imageFrame.className = "product-card__image";
+      const image = document.createElement("img");
+      image.src = product.thumbnail_url || product.thumbnail || "";
+      image.alt = product.description || "Imagem do produto";
+      image.loading = "lazy";
+      image.addEventListener("error", () => {
+        image.hidden = true;
+        imageFrame.classList.add("product-card__image--empty");
+      });
+      imageFrame.appendChild(image);
 
-    listagem.innerHTML = produtosRender;
-    console.log("Produtos renderizados com sucesso!");
+      const information = document.createElement("div");
+      information.className = "product-card__information";
+      const name = document.createElement("h3");
+      name.textContent = product.description || "Produto sem nome";
+      const description = document.createElement("p");
+      description.textContent = product.description2 || "Sem descrição adicional";
+      const price = document.createElement("strong");
+      const numericPrice = Number(product.price);
+      price.textContent = Number.isFinite(numericPrice)
+        ? productCurrency.format(numericPrice)
+        : String(product.price || "Preço não informado");
+      information.append(name, description, price);
 
-    alert("Produtos carregados com sucesso!");
+      const editButton = document.createElement("button");
+      editButton.type = "button";
+      editButton.className = "product-edit-button";
+      editButton.innerHTML = '<i class="fa-solid fa-pen-to-square" aria-hidden="true"></i><span>Editar</span>';
+      editButton.addEventListener("click", () => {
+        openEdit(
+          product._id,
+          product.description || "",
+          product.price || "",
+          product.thumbnail_url || product.thumbnail || "",
+          product.description2 || ""
+        );
+      });
 
-    // Exibe o botão de adicionar novo produto
-    const newProduct = document.querySelector(".newProduct");
-    if (newProduct) {
-      newProduct.style.display = "flex";
-      console.log("Elemento '.newProduct' exibido.");
-    } else {
-      console.warn("Elemento '.newProduct' não encontrado no DOM.");
-    }
+      card.append(imageFrame, information, editButton);
+      fragment.appendChild(card);
+    });
+
+    productsList.replaceChildren(fragment);
   } catch (error) {
     console.error("Erro na busca:", error);
-    alert("Erro ao buscar produtos: " + error.message);
+    setProductsFeedback("Não foi possível carregar os produtos. Confira o cliente e tente novamente.", "error");
+    showProductsMessage("Falha ao carregar os produtos.", error.message);
+  } finally {
+    loadButton.disabled = false;
   }
 }
 
@@ -66,137 +160,126 @@ function openEdit(id, nome, valor, img, description2) {
   const edit = document.querySelector(".edit");
   edit.style.display = "flex";
 
-  
   document.getElementById("att-nome").value = nome;
-  document.querySelector(".nomeP").innerHTML = nome;
+  document.querySelector(".nomeP").textContent = nome;
   document.getElementById("att-valor").value = valor;
   document.querySelector(".imgProduto").src = img;
-  document.querySelector(".description2").value = description2;
-
+  document.getElementById("description2").value = description2;
 
   const atualizarButton = document.querySelector(".att-produtos");
   atualizarButton.onclick = function () {
     atualizarP(id);
   };
-  console.log("Editor aberto para produto:", { id, nome, valor });
 
   const apagar = document.querySelector(".apagarProduto");
-
-  apagar.onclick = function(){
-    apagarProduto(id)
+  apagar.onclick = function () {
+    apagarProduto(id, nome);
   }
+  document.getElementById("att-nome").focus();
+}
 
-  async function apagarProduto(id) {
-  const id_user = document.querySelector(".id-user").value;
-    
-    const reqDelete = await fetch(`${urlApiList}/picole/${id}`, {
+async function apagarProduto(id, nome) {
+  if (!window.confirm(`Excluir “${nome}” deste catálogo?`)) return;
+
+  try {
+    const response = await fetch(`${urlApiList}/picole/${encodeURIComponent(id)}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
-        user_id: id_user,
+        user_id: clientIdInput.value.trim(),
       },
     });
-    if (!reqDelete.ok) {
-      throw new Error(`Erro na API: ${reqDelete.status}`);
-    }
+    if (!response.ok) throw new Error(`Erro na API: ${response.status}`);
 
-    const res = await reqDelete.json();
-    alert(res.Mensagem);
-  edit.style.display = "none";
-  buscarProdutos();
+    document.querySelector(".edit").style.display = "none";
+    await buscarProdutos();
+    setProductsFeedback("Produto excluído com sucesso.", "success");
+  } catch (error) {
+    setProductsFeedback(`Não foi possível excluir o produto: ${error.message}`, "error");
   }
 }
 
-
 async function atualizarP(id) {
-  const id_user = document.querySelector(".id-user").value;
+  const name = document.getElementById("att-nome").value.trim();
+  const price = document.getElementById("att-valor").value;
+  const description = document.getElementById("description2").value.trim();
+  const saveButton = document.querySelector(".att-produtos");
 
+  if (!name || price === "") {
+    setProductsFeedback("Informe o nome e o preço do produto.", "error");
+    return;
+  }
+
+  saveButton.disabled = true;
   try {
-    const attNome = document.getElementById("att-nome").value;
-    const attValor = document.getElementById("att-valor").value;
-const description2 = document.querySelector(".description2").value;
-
-    const reqAtt = await fetch(`${urlApiList}/atualizar/${id}`, {
+    const response = await fetch(`${urlApiList}/atualizar/${encodeURIComponent(id)}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        user_id: id_user,
+        user_id: clientIdInput.value.trim(),
       },
       body: JSON.stringify({
-        description: attNome,
-        description2: description2,
-        price: attValor,
+        description: name,
+        description2: description,
+        price,
         status: true,
       }),
     });
 
-    if (!reqAtt.ok) {
-      throw new Error(`Erro na API: ${reqAtt.status}`);
-    }
+    if (!response.ok) throw new Error(`Erro na API: ${response.status}`);
 
-    const res = await reqAtt.json();
-    alert("Produto atualizado com sucesso!");
-    console.log("Produto atualizado:", res);
-
-    
-    const edit = document.querySelector(".edit");
-    edit.style.display = "none";
-  buscarProdutos();
-
+    document.querySelector(".edit").style.display = "none";
+    await buscarProdutos();
+    setProductsFeedback("Produto atualizado com sucesso.", "success");
   } catch (error) {
     console.error("Erro na atualização:", error);
-    alert("Erro ao atualizar produto: " + error.message);
+    setProductsFeedback(`Não foi possível atualizar o produto: ${error.message}`, "error");
+  } finally {
+    saveButton.disabled = false;
   }
 }
-const criarButton = document.querySelector(".new-produto");
-criarButton.onclick = function () {
-  novoProduto();
-};
 
 async function novoProduto() {
-  const id_user2 = document.querySelector(".id-user").value;
-  const newNome = document.getElementById("new-nome").value;
-  const newValor = document.getElementById("new-valor").value;
-  const linkImg = document.getElementById("linkImg").value;
-  const description2 = document.querySelector(".description2").value;
+  const id = clientIdInput.value.trim();
+  const name = document.getElementById("new-nome").value.trim();
+  const price = document.getElementById("new-valor").value;
+  const image = document.getElementById("linkImg").value.trim();
+  const description = document.getElementById("new-description").value.trim();
+  const createButton = document.querySelector(".new-produto");
 
-
-  if (newNome == "" || newValor == "" || linkImg == "" || description2 == "") {
-    alert("preencha todos os campos");
+  if (!id || !name || price === "" || !image) {
+    setProductsFeedback("Preencha nome, preço e link da imagem.", "error");
     return;
   }
+
+  createButton.disabled = true;
   try {
-    const reqNew = await fetch(`${urlApiList}/add-produto`, {
+    const response = await fetch(`${urlApiList}/add-produto`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        user_id: id_user2,
+        user_id: id,
       },
       body: JSON.stringify({
-        user_id: id_user2,
-        description: newNome,
-        description2: description2,
-        price: newValor,
+        user_id: id,
+        description: name,
+        description2: description,
+        price,
         status: true,
-        thumbnail: linkImg,
+        thumbnail: image,
       }),
     });
 
-    if (!reqNew.ok) {
-      throw new Error(`Erro na API: ${reqNew.status}`);
-    }
+    if (!response.ok) throw new Error(`Erro na API: ${response.status}`);
 
-    const res = await reqNew.json();
-    alert("Produto criado com sucesso!");
-    console.log("Criado com sucesso:", res);
-
-    const newConteiner = document.querySelector(".new-conteiner");
-    newConteiner.style.display = "none";
-  buscarProdutos();
-
+    document.querySelector(".new-conteiner").style.display = "none";
+    await buscarProdutos();
+    setProductsFeedback("Produto criado com sucesso.", "success");
   } catch (error) {
     console.error("Erro na criação:", error);
-    alert("Erro ao criar produto: " + error.message);
+    setProductsFeedback(`Não foi possível criar o produto: ${error.message}`, "error");
+  } finally {
+    createButton.disabled = false;
   }
 }
 
@@ -204,16 +287,23 @@ const edit = document.querySelector(".edit");
 const closeEdit = document.querySelector(".closeEdit");
 const closeNew = document.querySelector(".closeNew");
 const newConteiner = document.querySelector(".new-conteiner");
-const newProduct = document.querySelector(".newProduct");
 
 closeEdit.addEventListener("click", function () {
-  edit.style = "display:none";
+  edit.style.display = "none";
 });
 
-newProduct.addEventListener("click", function () {
-  newConteiner.style = "display:flex";
+addProductButton.addEventListener("click", function () {
+  document.getElementById("new-nome").value = "";
+  document.getElementById("new-description").value = "";
+  document.getElementById("new-valor").value = "";
+  document.getElementById("linkImg").value = "";
+  newConteiner.style.display = "flex";
+  document.getElementById("new-nome").focus();
 });
 
 closeNew.addEventListener("click", function () {
-  newConteiner.style = "display:none";
+  newConteiner.style.display = "none";
 });
+
+document.querySelector(".new-produto").addEventListener("click", novoProduto);
+carregarClientesProdutos();
