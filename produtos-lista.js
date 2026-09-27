@@ -182,14 +182,17 @@ async function apagarProduto(id, nome) {
   if (!window.confirm(`Excluir “${nome}” deste catálogo?`)) return;
 
   try {
-    const response = await fetch(`${urlApiList}/picole/${encodeURIComponent(id)}`, {
+    const response = await fetch(`${urlApiList}/produto/${encodeURIComponent(id)}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
         user_id: clientIdInput.value.trim(),
       },
     });
-    if (!response.ok) throw new Error(`Erro na API: ${response.status}`);
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(result.error || result.message || `Erro na API: ${response.status}`);
+    }
 
     document.querySelector(".edit").style.display = "none";
     await buscarProdutos();
