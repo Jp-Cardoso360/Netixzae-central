@@ -114,6 +114,9 @@
         <input type="password" name="password" id="senha" />
         <label for="color">Cor do sistema <i class="fa-solid fa-palette"></i></label>
         <input type="color" id="corSistema" name="corSistema" />
+        <label for="bannerUser">Banner do sistema</label>
+        <input type="file" id="bannerUser" accept="image/*" />
+        <p class="banner-upload-feedback" id="bannerFeedback" role="status" aria-live="polite"></p>
 
         <p class="link"></p>
         <button onclick="criarConta()">Criar Conta</button>
@@ -149,6 +152,11 @@
           <h2 class="re-sucess">Sistema pronto para usar</h2>
           <p class="sucess-intro">Confira os dados de acesso e envie as instruções ao cliente.</p>
         </header>
+        <section class="banner-result" id="bannerResult" hidden aria-label="Banner cadastrado">
+          <h3>Banner do sistema</h3>
+          <img id="bannerPreview" alt="Banner enviado para o ImageKit">
+          <a id="bannerUrl" target="_blank" rel="noopener noreferrer">Abrir imagem do banner</a>
+        </section>
         <div class="share-message__body" id="mensagemCliente">
             <p class="mensagem-saudacao"></p>
             <p>Conta criada com sucesso! Seguem os dados para acessar seu sistema:</p>

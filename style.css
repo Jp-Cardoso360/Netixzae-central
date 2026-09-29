@@ -172,6 +172,20 @@ body {
   font-family: Verdana, Geneva, Tahoma, sans-serif;
   animation: sucesso 0.8s;
 }
+.cadastro .banner-upload-feedback {
+  width: 80%;
+  min-height: 1.2em;
+  margin: 2px 0 8px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+.cadastro .banner-upload-feedback[data-state="error"] {
+  color: #ff858a;
+}
+.cadastro button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
 .cadastro button {
   width: 80%;
   padding: 15px;
@@ -1879,6 +1893,40 @@ select:focus {
   border-radius: 16px;
   background: var(--surface);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.34);
+}
+
+.banner-result {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-raised, var(--surface));
+}
+
+.banner-result[hidden] {
+  display: none;
+}
+
+.banner-result h3 {
+  margin: 0;
+  color: #f3f7f7;
+  font-size: 1rem;
+}
+
+.banner-result img {
+  display: block;
+  width: min(100%, 420px);
+  max-height: 220px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.banner-result a {
+  overflow-wrap: anywhere;
+  color: var(--cor-segunda);
 }
 
 .sucess-header {

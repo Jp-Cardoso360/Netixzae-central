@@ -1,4 +1,39 @@
-const urlNetixZae = "https://netix-zae-api.vercel.app";
+const isLocalDevelopment = ["localhost", "127.0.0.1"].includes(location.hostname);
+const urlNetixZae = isLocalDevelopment
+  ? "http://localhost:3333"
+  : "https://netix-zae-api.vercel.app";
+const maxBannerSize = 5 * 1024 * 1024;
+const bannerInput = document.querySelector("#bannerUser");
+const bannerFeedback = document.querySelector("#bannerFeedback");
+
+function setBannerFeedback(message, state = "") {
+  bannerFeedback.textContent = message;
+  bannerFeedback.dataset.state = state;
+}
+
+function validateBanner(file) {
+  if (!file.type.startsWith("image/")) {
+    throw new Error("Selecione um arquivo de imagem para o banner.");
+  }
+  if (file.size > maxBannerSize) {
+    throw new Error("O banner deve ter no máximo 5 MB.");
+  }
+}
+
+bannerInput.addEventListener("change", () => {
+  const file = bannerInput.files[0];
+  if (!file) {
+    setBannerFeedback("");
+    return;
+  }
+
+  try {
+    validateBanner(file);
+    setBannerFeedback(`Imagem selecionada: ${file.name}`);
+  } catch (error) {
+    setBannerFeedback(error.message, "error");
+  }
+});
 
 async function criarConta() {
   const nome = document.getElementById("nome").value;
@@ -6,48 +41,61 @@ async function criarConta() {
   const email = document.getElementById("email").value;
   const senha = document.getElementById("senha").value;
   const corSistema = document.getElementById("corSistema").value;
-
-
+  const banner = bannerInput.files[0];
 
   const load = document.querySelector(".loading");
   const loadMensage = document.querySelector(".loadMensage");
+  const createButton = document.querySelector(".cadastro button");
 
-  if (email == "" || senha == "" || tel == "" || corSistema == "") {
-    alert("Preencha todos os campos");
+  if (!nome.trim() || !email.trim() || !senha || !tel.trim() || !corSistema) {
+    setBannerFeedback("Preencha todos os campos para criar a conta.", "error");
     return;
   }
   if (senha.length < 4) {
-    alert("A Senha deve ter no minimo 4 digitos");
+    setBannerFeedback("A senha deve ter no mínimo 4 caracteres.", "error");
+    return;
+  }
+  if (!banner) {
+    setBannerFeedback("Selecione uma imagem para o banner.", "error");
+    return;
+  }
+  try {
+    validateBanner(banner);
+  } catch (error) {
+    setBannerFeedback(error.message, "error");
     return;
   }
 
   try {
-    load.style = "display:flex;";
-    loadMensage.innerHTML = `Criando sistema <br> para ${nome}...`;
+    createButton.disabled = true;
+    setBannerFeedback("Enviando cadastro e banner...");
+    load.style.display = "flex";
+    loadMensage.textContent = `Criando sistema para ${nome}...`;
+
+    const formData = new FormData();
+    formData.append("nome", nome);
+    formData.append("tel", tel);
+    formData.append("email", email);
+    formData.append("senha", senha);
+    formData.append("corSistema", corSistema);
+    formData.append("banner", banner);
 
     const req = await fetch(`${urlNetixZae}/sessions/create/acount`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        nome: nome,
-        tel: tel,
-        email: email,
-        senha: senha,
-        corSistema: corSistema,
-      }),
+      body: formData,
     });
 
+    const res = await req.json().catch(() => ({}));
     if (!req.ok) {
-      throw new Error(`Erro na API: ${req.status}`);
+      throw new Error(res.error || res.message || `Erro na API: ${req.status}`);
     }
-
-    const res = await req.json();
     if (!res.user) {
       throw new Error("Resposta da API sem os dados do usuário");
     }
 
+      const bannerResult = document.querySelector("#bannerResult");
+      const bannerPreview = document.querySelector("#bannerPreview");
+      const bannerUrl = document.querySelector("#bannerUrl");
       const sucess = document.querySelector(".sucess");
       const cadastro = document.querySelector(".cadastro");
       const dados_email = document.querySelector(".email-res");
@@ -57,6 +105,15 @@ async function criarConta() {
       const nomeCliente = String(res.user.nome || nome || "cliente").trim();
       const linkLogin = "https://meu-carrinho-login.netlify.app";
       const linkSistema = `https://comercio-zap.netlify.app/${res.user._id}`;
+
+      if (typeof res.user.banner === "string" && res.user.banner.trim()) {
+        bannerPreview.src = res.user.banner;
+        bannerUrl.href = res.user.banner;
+        bannerUrl.textContent = res.user.banner;
+        bannerResult.hidden = false;
+      } else {
+        bannerResult.hidden = true;
+      }
 
       cadastro.style = "display:none;";
       sucess.style = "display:flex;";
@@ -82,11 +139,13 @@ async function criarConta() {
       document.querySelector(".mensagem-email").textContent = `E-mail: ${res.user.email || email}`;
       document.querySelector(".mensagem-senha").textContent = `Senha: ${senha}`;
       document.querySelector(".share-whatsapp").dataset.telefone = tel;
+      setBannerFeedback("");
   } catch (error) {
     console.error("Erro encontrado:", error);
-    alert(error.message || "Tente novamente");
+    setBannerFeedback(error.message || "Falha ao criar a conta e enviar o banner.", "error");
   } finally {
     load.style.display = "none";
+    createButton.disabled = false;
   }
 }
 
