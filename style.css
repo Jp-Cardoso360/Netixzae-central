@@ -1805,6 +1805,18 @@ select:focus {
   resize: vertical;
 }
 
+.content-edit .form small,
+.form-new small {
+  min-height: 1em;
+  color: #c9d4d5;
+  font-size: 0.8rem;
+}
+
+.content-edit .form small[data-state="error"],
+.form-new small[data-state="error"] {
+  color: #ff858a;
+}
+
 .product-edit-actions {
   display: flex;
   align-items: center;

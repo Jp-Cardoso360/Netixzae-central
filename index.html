@@ -291,6 +291,9 @@
           <input type="number" name="valor" id="att-valor" min="0" step="0.01">
           <label for="description2">Descrição</label>
           <textarea name="description2" id="description2" rows="3"></textarea>
+          <label for="edit-product-image">Nova imagem (opcional, até 5 MB)</label>
+          <input type="file" id="edit-product-image" accept="image/*">
+          <small id="edit-product-image-name" aria-live="polite"></small>
           <div class="product-edit-actions">
             <button type="button" class="apagarProduto">
               <i class="fa-solid fa-trash" aria-hidden="true"></i>
@@ -313,8 +316,9 @@
         <textarea id="new-description" rows="3"></textarea>
         <label for="new-valor">Preço (R$)</label>
         <input type="number" name="valor" id="new-valor" min="0" step="0.01">
-        <label for="linkImg">Link da imagem</label>
-        <input type="url" id="linkImg" placeholder="https://...">
+        <label for="new-product-image">Imagem (até 5 MB)</label>
+        <input type="file" id="new-product-image" accept="image/*">
+        <small id="new-product-image-name" aria-live="polite"></small>
         <button type="button" class="new-produto">Criar produto</button>
       </section>
     </main>
