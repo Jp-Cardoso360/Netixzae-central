@@ -51,7 +51,8 @@ async function buscarReceitas() {
 contarUsuarios();
 buscarReceitas();
 
-const apiURL = "https://netix-zae-api.vercel.app/sessions-list-counts";
+const dashboardApiBaseURL = "https://netix-zae-api.vercel.app";
+const apiURL = `${dashboardApiBaseURL}/sessions-list-counts`;
 const valorPlanoCompleto = 39.9;
 const formatarMoeda = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -129,8 +130,16 @@ async function DisplayAccounts() {
     const accountsResponse = await fetch(apiURL);
     const accounts = await accountsResponse.json();
 
-    const metasResponse = await fetch(`${urlApiList}/metas/list`);
-    const metas = await metasResponse.json();
+    const metasResponse = await fetch(`${dashboardApiBaseURL}/metas/list`);
+    if (!accountsResponse.ok || !metasResponse.ok) {
+      throw new Error("Não foi possível carregar clientes e metas.");
+    }
+
+    const metasResult = await metasResponse.json();
+    const metas = Array.isArray(metasResult) ? metasResult : metasResult.value;
+    if (!Array.isArray(accounts) || !Array.isArray(metas)) {
+      throw new Error("A resposta de clientes ou metas é inválida.");
+    }
 
     const container = document.querySelector(".conteiner-clientes");
     const searchInput = document.querySelector("#buscaCliente");

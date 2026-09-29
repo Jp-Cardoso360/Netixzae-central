@@ -1,5 +1,5 @@
-const isLocalDevelopment = ["localhost", "127.0.0.1"].includes(location.hostname);
-const urlApiList = isLocalDevelopment
+const isProductsLocalDevelopment = ["localhost", "127.0.0.1"].includes(location.hostname);
+const urlApiList = isProductsLocalDevelopment
   ? "http://localhost:3333"
   : "https://netix-zae-api.vercel.app";
 const maxProductImageSize = 5 * 1024 * 1024;
