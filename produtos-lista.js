@@ -15,6 +15,15 @@ const productsFeedback = document.querySelector("#productsFeedback");
 const addProductButton = document.querySelector(".newProduct");
 const newProductImage = document.querySelector("#new-product-image");
 const editProductImage = document.querySelector("#edit-product-image");
+const newCategorySelect = document.querySelector("#new-category");
+const editCategorySelect = document.querySelector("#edit-category");
+const categoryNameInput = document.querySelector("#category-name");
+const categoryCreateButton = document.querySelector(".save-category");
+const categoryFeedback = document.querySelector("#category-feedback");
+const categoryList = document.querySelector("#category-list");
+const categoryModal = document.querySelector(".category-conteiner");
+const manageCategoriesButton = document.querySelector(".manageCategories");
+const lastCreatedCategoryByUser = new Map();
 
 function validateProductImage(file) {
   if (!file.type.startsWith("image/")) {
@@ -70,6 +79,175 @@ async function readProductResponse(response, action) {
   return result;
 }
 
+async function loadProductCategories(select, companyId, selectedCategoryId = "") {
+  select.dataset.loaded = "false";
+  select.disabled = true;
+  select.replaceChildren(new Option("Carregando categorias...", ""));
+
+  try {
+    const response = await fetch(`${urlApiList}/categories`, {
+      headers: { user_id: companyId },
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(result.error || result.message || `Erro na API: ${response.status}`);
+    }
+
+    const categories = Array.isArray(result) ? result : result.value;
+    if (!Array.isArray(categories)) {
+      throw new Error("A resposta de categorias é inválida.");
+    }
+
+    const options = document.createDocumentFragment();
+    options.appendChild(new Option("Sem categoria", ""));
+    categories.forEach((category) => {
+      const id = String(category._id || "");
+      if (!id) return;
+      options.appendChild(new Option(category.nome || "Categoria sem nome", id));
+    });
+    select.replaceChildren(options);
+    select.value = selectedCategoryId;
+    select.dataset.loaded = "true";
+  } catch (error) {
+    select.replaceChildren(new Option("Não foi possível carregar categorias", ""));
+    throw error;
+  } finally {
+    select.disabled = false;
+  }
+}
+
+function setCategoryFeedback(message, state = "") {
+  categoryFeedback.textContent = message;
+  categoryFeedback.dataset.state = state;
+}
+
+async function loadCategoryManager() {
+  const userId = clientIdInput.value.trim();
+  const loadingItem = document.createElement("li");
+  loadingItem.textContent = "Carregando categorias...";
+  categoryList.replaceChildren(loadingItem);
+
+  const response = await fetch(`${urlApiList}/categories`, {
+    headers: { user_id: userId },
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(result.error || result.message || `Erro na API: ${response.status}`);
+  }
+
+  const categories = Array.isArray(result) ? result : result.value;
+  if (!Array.isArray(categories)) {
+    throw new Error("A resposta de categorias é inválida.");
+  }
+  if (!categories.length) {
+    const emptyItem = document.createElement("li");
+    emptyItem.textContent = "Nenhuma categoria cadastrada.";
+    emptyItem.className = "category-list__empty";
+    categoryList.replaceChildren(emptyItem);
+    return;
+  }
+
+  const items = document.createDocumentFragment();
+  categories.forEach((category) => {
+    const id = String(category._id || "");
+    if (!id) return;
+
+    const item = document.createElement("li");
+    const name = document.createElement("span");
+    name.textContent = category.nome || "Categoria sem nome";
+    const deleteButton = document.createElement("button");
+    deleteButton.type = "button";
+    deleteButton.className = "category-list__delete";
+    deleteButton.setAttribute("aria-label", `Apagar categoria ${name.textContent}`);
+    deleteButton.title = "Apagar categoria";
+    deleteButton.innerHTML = '<i class="fa-solid fa-trash" aria-hidden="true"></i>';
+    deleteButton.addEventListener("click", () => apagarCategoria(id, name.textContent, deleteButton));
+    item.append(name, deleteButton);
+    items.appendChild(item);
+  });
+  categoryList.replaceChildren(items);
+}
+
+async function apagarCategoria(id, nome, button) {
+  const userId = clientIdInput.value.trim();
+  if (!window.confirm(`Apagar a categoria “${nome}”?`)) return;
+
+  button.disabled = true;
+  try {
+    const response = await fetch(`${urlApiList}/categories/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        user_id: userId,
+      },
+    });
+    await readProductResponse(response, "ao apagar categoria");
+
+    if (lastCreatedCategoryByUser.get(userId) === id) {
+      lastCreatedCategoryByUser.delete(userId);
+    }
+    const refreshResults = await Promise.allSettled([
+      loadCategoryManager(),
+      loadProductCategories(newCategorySelect, userId),
+      loadProductCategories(editCategorySelect, userId),
+    ]);
+    const refreshFailed = refreshResults.some((result) => result.status === "rejected");
+    setCategoryFeedback(
+      refreshFailed ? "Categoria apagada. Não foi possível atualizar todos os seletores." : "Categoria apagada com sucesso.",
+      refreshFailed ? "error" : "success"
+    );
+  } catch (error) {
+    setCategoryFeedback(error.message || "Não foi possível apagar a categoria.", "error");
+    button.disabled = false;
+  }
+}
+
+async function criarCategoria() {
+  const userId = clientIdInput.value.trim();
+  const nome = categoryNameInput.value.trim();
+  if (!userId || !nome) {
+    setCategoryFeedback("Informe o nome da categoria.", "error");
+    categoryNameInput.focus();
+    return;
+  }
+
+  categoryCreateButton.disabled = true;
+  setCategoryFeedback("Salvando categoria...");
+  try {
+    const response = await fetch(`${urlApiList}/categories`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        user_id: userId,
+      },
+      body: JSON.stringify({ nome, user_id: userId }),
+    });
+    const result = await readProductResponse(response, "ao criar categoria");
+    const category = result.category || result.value || result.data || result;
+    let categoryId = String(category?._id || category?.id || "");
+
+    await loadProductCategories(newCategorySelect, userId, categoryId);
+    if (!categoryId) {
+      const matchingCategory = [...newCategorySelect.options].find(
+        (option) => option.textContent.trim().toLocaleLowerCase("pt-BR") === nome.toLocaleLowerCase("pt-BR")
+      );
+      categoryId = matchingCategory?.value || "";
+    }
+    if (!categoryId) {
+      throw new Error("Categoria criada, mas não foi possível identificá-la na lista.");
+    }
+
+    lastCreatedCategoryByUser.set(userId, categoryId);
+    categoryNameInput.value = "";
+    categoryModal.style.display = "none";
+    setProductsFeedback("Categoria criada com sucesso.", "success");
+  } catch (error) {
+    setCategoryFeedback(error.message || "Não foi possível salvar a categoria.", "error");
+  } finally {
+    categoryCreateButton.disabled = false;
+  }
+}
+
 function showProductsMessage(title, detail = "") {
   const message = document.createElement("div");
   message.className = "products-empty";
@@ -93,8 +271,9 @@ function setProductsFeedback(message, state = "") {
 }
 
 function resetProductResults(message) {
-  addProductButton.hidden = true;
-  addProductButton.disabled = true;
+  const hasClient = Boolean(clientIdInput.value.trim());
+  addProductButton.disabled = !hasClient;
+  manageCategoriesButton.disabled = !hasClient;
   showProductsMessage("Busque produtos para este cliente.");
   setProductsFeedback(message);
 }
@@ -161,7 +340,7 @@ async function buscarProdutos() {
 
   const loadButton = document.querySelector(".products-load");
   loadButton.disabled = true;
-  addProductButton.hidden = true;
+  addProductButton.disabled = true;
   setProductsFeedback("Carregando produtos...");
   showProductsMessage("Buscando produtos...");
 
@@ -172,7 +351,6 @@ async function buscarProdutos() {
     const products = await response.json();
     if (!Array.isArray(products)) throw new Error("A resposta da API é inválida.");
 
-    addProductButton.hidden = false;
     addProductButton.disabled = false;
     setProductsFeedback(`${products.length} ${products.length === 1 ? "produto encontrado" : "produtos encontrados"}.`);
 
@@ -221,7 +399,8 @@ async function buscarProdutos() {
           product.description || "",
           product.price || "",
           product.thumbnail_url || product.thumbnail || "",
-          product.description2 || ""
+          product.description2 || "",
+          product.categoriaId?._id || product.categoriaId || ""
         );
       });
 
@@ -235,11 +414,12 @@ async function buscarProdutos() {
     setProductsFeedback("Não foi possível carregar os produtos. Confira o cliente e tente novamente.", "error");
     showProductsMessage("Falha ao carregar os produtos.", error.message);
   } finally {
+    addProductButton.disabled = !clientIdInput.value.trim();
     loadButton.disabled = false;
   }
 }
 
-function openEdit(id, nome, valor, img, description2) {
+async function openEdit(id, nome, valor, img, description2, categoriaId = "") {
   const edit = document.querySelector(".edit");
   edit.style.display = "flex";
 
@@ -250,6 +430,14 @@ function openEdit(id, nome, valor, img, description2) {
   document.getElementById("att-valor").value = valor;
   document.querySelector(".imgProduto").src = img;
   document.getElementById("description2").value = description2;
+  const selectedCategoryId = categoriaId && typeof categoriaId === "object"
+    ? String(categoriaId._id || "")
+    : String(categoriaId || "");
+  try {
+    await loadProductCategories(editCategorySelect, clientIdInput.value.trim(), selectedCategoryId);
+  } catch (error) {
+    setProductsFeedback(`Não foi possível carregar as categorias: ${error.message}`, "error");
+  }
 
   const atualizarButton = document.querySelector(".att-produtos");
   atualizarButton.onclick = function () {
@@ -295,6 +483,10 @@ async function atualizarP(id) {
   const image = editProductImage.files[0];
   const userId = clientIdInput.value.trim();
 
+  if (editCategorySelect.dataset.loaded !== "true") {
+    setProductsFeedback("Carregue as categorias antes de salvar o produto.", "error");
+    return;
+  }
   if (!name || price === "") {
     setProductsFeedback("Informe o nome e o preço do produto.", "error");
     return;
@@ -315,6 +507,7 @@ async function atualizarP(id) {
       description2: description,
       price,
       status: true,
+      categoriaId: editCategorySelect.value || null,
     };
     if (image) {
       setProductsFeedback("Enviando nova imagem...");
@@ -352,6 +545,10 @@ async function novoProduto() {
   const description = document.getElementById("new-description").value.trim();
   const createButton = document.querySelector(".new-produto");
 
+  if (newCategorySelect.dataset.loaded !== "true") {
+    setProductsFeedback("Carregue as categorias antes de cadastrar o produto.", "error");
+    return;
+  }
   if (!id || !name || price === "" || !image) {
     setProductsFeedback("Preencha nome, preço e selecione uma imagem.", "error");
     return;
@@ -382,6 +579,7 @@ async function novoProduto() {
         price,
         status: true,
         thumbnail: imageUrl,
+        categoriaId: newCategorySelect.value || null,
       }),
     });
 
@@ -407,13 +605,19 @@ closeEdit.addEventListener("click", function () {
   edit.style.display = "none";
 });
 
-addProductButton.addEventListener("click", function () {
+addProductButton.addEventListener("click", async function () {
   document.getElementById("new-nome").value = "";
   document.getElementById("new-description").value = "";
   document.getElementById("new-valor").value = "";
   newProductImage.value = "";
   updateImageSelection(newProductImage, "new-product-image-name");
   newConteiner.style.display = "flex";
+  try {
+    const userId = clientIdInput.value.trim();
+    await loadProductCategories(newCategorySelect, userId, lastCreatedCategoryByUser.get(userId) || "");
+  } catch (error) {
+    setProductsFeedback(`Não foi possível carregar as categorias: ${error.message}`, "error");
+  }
   document.getElementById("new-nome").focus();
 });
 
@@ -422,6 +626,30 @@ closeNew.addEventListener("click", function () {
 });
 
 document.querySelector(".new-produto").addEventListener("click", novoProduto);
+manageCategoriesButton.addEventListener("click", () => {
+  if (!clientIdInput.value.trim()) {
+    setProductsFeedback("Selecione um cliente ou informe o ID antes de criar categorias.", "error");
+    return;
+  }
+  categoryNameInput.value = "";
+  setCategoryFeedback("");
+  categoryModal.style.display = "flex";
+  categoryNameInput.focus();
+  loadCategoryManager().catch((error) => {
+    categoryList.replaceChildren();
+    setCategoryFeedback(`Não foi possível carregar as categorias: ${error.message}`, "error");
+  });
+});
+document.querySelector(".closeCategory").addEventListener("click", () => {
+  categoryModal.style.display = "none";
+});
+categoryCreateButton.addEventListener("click", criarCategoria);
+categoryNameInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    criarCategoria();
+  }
+});
 newProductImage.addEventListener("change", () => updateImageSelection(newProductImage, "new-product-image-name"));
 editProductImage.addEventListener("change", () => updateImageSelection(editProductImage, "edit-product-image-name"));
 carregarClientesProdutos();

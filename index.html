@@ -246,10 +246,16 @@
           <p class="products-eyebrow">CATÁLOGO POR CLIENTE</p>
           <h2>Atualizar Produtos</h2>
         </div>
-        <button type="button" class="newProduct" hidden disabled>
-          <i class="fa-solid fa-plus" aria-hidden="true"></i>
-          Adicionar produto
-        </button>
+        <div class="products-heading__actions">
+          <button type="button" class="manageCategories" disabled>
+            <i class="fa-solid fa-tags" aria-hidden="true"></i>
+            Categorias
+          </button>
+          <button type="button" class="newProduct" disabled>
+            <i class="fa-solid fa-plus" aria-hidden="true"></i>
+            Adicionar produto
+          </button>
+        </div>
       </header>
       <div class="products-toolbar">
         <div class="products-client-picker">
@@ -299,6 +305,10 @@
           <input type="number" name="valor" id="att-valor" min="0" step="0.01">
           <label for="description2">Descrição</label>
           <textarea name="description2" id="description2" rows="3"></textarea>
+          <label for="edit-category">Categoria</label>
+          <select id="edit-category">
+            <option value="">Sem categoria</option>
+          </select>
           <label for="edit-product-image">Nova imagem (opcional, até 5 MB)</label>
           <input type="file" id="edit-product-image" accept="image/*">
           <small id="edit-product-image-name" aria-live="polite"></small>
@@ -322,12 +332,35 @@
         <input type="text" id="new-nome" autocomplete="off">
         <label for="new-description">Descrição do produto</label>
         <textarea id="new-description" rows="3"></textarea>
+        <label for="new-category">Categoria</label>
+        <select id="new-category">
+          <option value="">Sem categoria</option>
+        </select>
         <label for="new-valor">Preço (R$)</label>
         <input type="number" name="valor" id="new-valor" min="0" step="0.01">
         <label for="new-product-image">Imagem (até 5 MB)</label>
         <input type="file" id="new-product-image" accept="image/*">
         <small id="new-product-image-name" aria-live="polite"></small>
         <button type="button" class="new-produto">Criar produto</button>
+      </section>
+    </main>
+    <main class="new-conteiner category-conteiner">
+      <section class="form-new" role="dialog" aria-modal="true" aria-labelledby="nova-categoria-title">
+        <button type="button" class="closeCategory" aria-label="Fechar categorias" title="Fechar categorias">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+        <h2 id="nova-categoria-title">Gerenciar categorias</h2>
+        <ul id="category-list" class="category-list" aria-live="polite">
+          <li>Carregando categorias...</li>
+        </ul>
+        <h3 class="category-form-title">Criar categoria</h3>
+        <label for="category-name">Nome da categoria</label>
+        <input type="text" id="category-name" placeholder="Ex.: Bebidas" autocomplete="off">
+        <small id="category-feedback" role="status" aria-live="polite"></small>
+        <button type="button" class="save-category">
+          <i class="fa-solid fa-plus" aria-hidden="true"></i>
+          Criar categoria
+        </button>
       </section>
     </main>
     <main class="loading">
