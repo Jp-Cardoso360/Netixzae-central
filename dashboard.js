@@ -1,8 +1,6 @@
 async function contarUsuarios() {
   try {
-    const response = await fetch(
-      "https://netix-zae-api.vercel.app/sessions-list-counts"
-    );
+    const response = await fetch(`${urlNetixZae}/sessions-list-counts`);
 
     if (!response.ok) {
       throw new Error("Erro ao buscar a lista de usuários da API");
@@ -22,7 +20,7 @@ async function contarUsuarios() {
 
 async function buscarReceitas() {
   try {
-    const response = await fetch("https://netix-zae-api.vercel.app/receita");
+    const response = await fetch(`${urlNetixZae}/receita`);
 
     if (!response.ok) {
       throw new Error("Erro ao buscar receitas da API");
@@ -51,12 +49,73 @@ async function buscarReceitas() {
 contarUsuarios();
 buscarReceitas();
 
-const dashboardApiBaseURL = "https://netix-zae-api.vercel.app";
-const apiURL = `${dashboardApiBaseURL}/sessions-list-counts`;
+const apiURL = `${urlNetixZae}/sessions-list-counts`;
 const valorPlanoCompleto = 39.9;
 const formatarMoeda = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL",
+});
+
+const suspensionModal = document.querySelector("#suspensionModal");
+const suspensionClient = document.querySelector("#suspensionClient");
+const suspensionInput = document.querySelector("#suspensionInput");
+const suspensionFeedback = document.querySelector("#suspensionFeedback");
+const cancelSuspension = document.querySelector("#cancelSuspension");
+const confirmSuspension = document.querySelector("#confirmSuspension");
+let confirmSuspensionAction = null;
+let suspensionModalOpener = null;
+
+function closeSuspensionModal() {
+  suspensionModal.hidden = true;
+  suspensionInput.value = "";
+  suspensionFeedback.textContent = "";
+  suspensionFeedback.classList.remove("is-error");
+  confirmSuspensionAction = null;
+  suspensionModalOpener?.focus();
+  suspensionModalOpener = null;
+}
+
+function openSuspensionModal(clientName, onConfirm, opener) {
+  suspensionClient.textContent = `Cliente: ${clientName}`;
+  suspensionInput.value = "";
+  suspensionFeedback.textContent = "";
+  suspensionFeedback.classList.remove("is-error");
+  confirmSuspensionAction = onConfirm;
+  suspensionModalOpener = opener;
+  suspensionModal.hidden = false;
+  suspensionInput.focus();
+}
+
+cancelSuspension.addEventListener("click", closeSuspensionModal);
+suspensionModal.addEventListener("click", (event) => {
+  if (event.target === suspensionModal) closeSuspensionModal();
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !suspensionModal.hidden) closeSuspensionModal();
+});
+suspensionInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") confirmSuspension.click();
+});
+confirmSuspension.addEventListener("click", async () => {
+  if (suspensionInput.value.trim().toLocaleLowerCase("pt-BR") !== "suspender") {
+    suspensionFeedback.textContent = 'Digite "suspender" para confirmar a suspensão.';
+    suspensionFeedback.classList.add("is-error");
+    suspensionInput.focus();
+    return;
+  }
+  if (!confirmSuspensionAction) return;
+
+  confirmSuspension.disabled = true;
+  cancelSuspension.disabled = true;
+  try {
+    if (await confirmSuspensionAction()) closeSuspensionModal();
+  } catch (error) {
+    suspensionFeedback.textContent = error.message || "Não foi possível suspender a conta.";
+    suspensionFeedback.classList.add("is-error");
+  } finally {
+    confirmSuspension.disabled = false;
+    cancelSuspension.disabled = false;
+  }
 });
 
 async function atualizarResumoPlanoCompleto() {
@@ -69,7 +128,7 @@ async function atualizarResumoPlanoCompleto() {
   try {
     const [accountsResponse, plansResponse] = await Promise.all([
       fetch(apiURL),
-      fetch("https://netix-zae-api.vercel.app/metas/list"),
+      fetch(`${urlNetixZae}/metas/list`),
     ]);
 
     if (!accountsResponse.ok || !plansResponse.ok) {
@@ -130,7 +189,7 @@ async function DisplayAccounts() {
     const accountsResponse = await fetch(apiURL);
     const accounts = await accountsResponse.json();
 
-    const metasResponse = await fetch(`${dashboardApiBaseURL}/metas/list`);
+    const metasResponse = await fetch(`${urlNetixZae}/metas/list`);
     if (!accountsResponse.ok || !metasResponse.ok) {
       throw new Error("Não foi possível carregar clientes e metas.");
     }
@@ -151,13 +210,18 @@ async function DisplayAccounts() {
     accounts.forEach((account) => {
       const userMeta = metas.find((meta) => meta.user_id === account._id);
       const planName = String(userMeta?.plano || "").trim() || "Sem plano";
+      let accountStatus = String(userMeta?.status || "").trim().toLocaleLowerCase("pt-BR");
+      const statusLabel = accountStatus === "ativo"
+        ? "Ativo"
+        : accountStatus === "suspenso"
+          ? "Suspenso"
+          : "Não configurado";
       const planFilterValue = planName === "Sem plano"
         ? "sem-plano"
         : planName
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
         .toLocaleLowerCase("pt-BR");
-      const goal = userMeta?.meta || "Meta não definida";
       const phone = String(account.tel || "");
       const card = document.createElement("article");
       card.className = "client-card";
@@ -190,21 +254,17 @@ async function DisplayAccounts() {
 
       const fields = document.createElement("div");
       fields.className = "client-card__fields";
+      const statusField = createClientField("Status da conta", statusLabel);
+      const statusValue = statusField.querySelector(".client-field__value");
+      statusValue.classList.add("client-card__status");
+      if (accountStatus === "ativo" || accountStatus === "suspenso") {
+        statusValue.classList.add(`is-${accountStatus}`);
+      }
       fields.append(
         createClientField("Telefone", phone),
-        createClientField("E-mail", account.email)
+        createClientField("E-mail", account.email),
+        statusField
       );
-
-      const plan = document.createElement("div");
-      plan.className = "client-card__goal";
-
-      const goalLabel = document.createElement("span");
-      goalLabel.className = "client-field__label";
-      goalLabel.textContent = "Meta do cliente";
-
-      const goalValue = document.createElement("strong");
-      goalValue.textContent = goal;
-      plan.append(goalLabel, goalValue);
 
       const footer = document.createElement("div");
       footer.className = "client-card__footer";
@@ -230,10 +290,95 @@ async function DisplayAccounts() {
       }
 
       footer.append(systemLink, whatsapp);
-      card.append(header, fields, plan, footer);
+
+      const feedback = document.createElement("p");
+      feedback.className = "client-card__feedback";
+      feedback.setAttribute("role", "status");
+      feedback.setAttribute("aria-live", "polite");
+
+      if (accountStatus === "ativo" || accountStatus === "suspenso") {
+        const statusButton = document.createElement("button");
+        statusButton.type = "button";
+        statusButton.className = "client-card__status-toggle";
+
+        const updateStatusControl = () => {
+          const isActive = accountStatus === "ativo";
+          statusValue.textContent = isActive ? "Ativo" : "Suspenso";
+          statusValue.classList.toggle("is-ativo", isActive);
+          statusValue.classList.toggle("is-suspenso", !isActive);
+          statusButton.textContent = isActive ? "Conta ativa" : "Conta suspensa";
+          statusButton.title = isActive
+            ? "Clique para suspender esta conta"
+            : "Clique para regularizar esta conta";
+          statusButton.setAttribute(
+            "aria-label",
+            `${statusButton.textContent}. ${statusButton.title}.`
+          );
+          statusButton.classList.toggle("is-active", isActive);
+          statusButton.classList.toggle("is-suspended", !isActive);
+        };
+
+        updateStatusControl();
+        const saveAccountStatus = async (nextStatus) => {
+          statusButton.disabled = true;
+          statusButton.textContent = "Atualizando...";
+          feedback.textContent = "";
+          feedback.classList.remove("is-error");
+          suspensionFeedback.textContent = "";
+          suspensionFeedback.classList.remove("is-error");
+
+          try {
+            const response = await fetch(
+              `${urlNetixZae}/metas/${encodeURIComponent(account._id)}/status`,
+              {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: nextStatus }),
+              }
+            );
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) {
+              throw new Error(result.message || result.error || `Erro na API: ${response.status}`);
+            }
+
+            accountStatus = nextStatus;
+            updateStatusControl();
+            feedback.textContent = `Conta ${nextStatus === "suspenso" ? "suspensa" : "regularizada"} com sucesso.`;
+            return true;
+          } catch (error) {
+            const errorMessage = error.message || "Não foi possível atualizar o status da conta.";
+            if (nextStatus === "suspenso") {
+              suspensionFeedback.textContent = errorMessage;
+              suspensionFeedback.classList.add("is-error");
+            } else {
+              feedback.textContent = errorMessage;
+              feedback.classList.add("is-error");
+            }
+            updateStatusControl();
+            return false;
+          } finally {
+            statusButton.disabled = false;
+          }
+        };
+
+        statusButton.addEventListener("click", async () => {
+          if (accountStatus === "ativo") {
+            openSuspensionModal(
+              account.nome || "este cliente",
+              () => saveAccountStatus("suspenso"),
+              statusButton
+            );
+            return;
+          }
+          await saveAccountStatus("ativo");
+        });
+        footer.appendChild(statusButton);
+      }
+
+      card.append(header, fields, footer, feedback);
       container.appendChild(card);
 
-      const searchableText = [account.nome, phone, account.email, account._id, planName, goal]
+      const searchableText = [account.nome, phone, account.email, account._id, planName, statusLabel]
         .filter(Boolean)
         .join(" ")
         .toLocaleLowerCase("pt-BR");

@@ -229,35 +229,33 @@ async function deleteUser() {
 }
 
 async function salvarMetas() {
-  const metaUp = document.getElementById("metaUp").value;
-  const idUp = document.getElementById("idUp").value;
+  const idUp = document.getElementById("idUp").value.trim();
   const plano = document.getElementById("plano").value;
 
-  if (idUp == "" || metaUp == "") {
-    alert("Preencha todos os campos");
+  if (!idUp) {
+    alert("Informe o ID do usuário.");
     return;
   }
   try {
-    const req = await fetch(`${urlNetixZae}/metas/${idUp}`, {
+    const req = await fetch(`${urlNetixZae}/metas/${encodeURIComponent(idUp)}`, {
       method: "POST",
       headers: {
         "Content-type": "application/json",
       },
       body: JSON.stringify({
-        meta: metaUp,
         plano: plano,
       }),
     });
+    const res = await req.json().catch(() => ({}));
 
     if (!req.ok) {
-      console.error("Erro na api");
+      throw new Error(res.message || res.error || `Erro na API: ${req.status}`);
     }
 
-    const res = await req.json();
-
-    alert("Meta criada com sucesso");
-    idUp.value = "";
-  } catch {
-    alert("Erro ao excluir");
+    document.getElementById("idUp").value = "";
+    alert(res.message || "Plano registrado com status ativo.");
+    await Promise.all([DisplayAccounts(), atualizarResumoPlanoCompleto()]);
+  } catch (error) {
+    alert(error.message || "Não foi possível registrar o plano.");
   }
 }
