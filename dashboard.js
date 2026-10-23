@@ -263,6 +263,7 @@ async function DisplayAccounts() {
       fields.append(
         createClientField("Telefone", phone),
         createClientField("E-mail", account.email),
+        createClientField("Slug da loja", account.slug),
         statusField
       );
 
@@ -271,10 +272,28 @@ async function DisplayAccounts() {
 
       const systemLink = document.createElement("a");
       systemLink.className = "client-card__system-link";
-      systemLink.href = `https://comercio-zap.netlify.app/${encodeURIComponent(account._id || "")}`;
-      systemLink.target = "_blank";
-      systemLink.rel = "noopener noreferrer";
-      systemLink.innerHTML = 'Acessar sistema <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>';
+      const updateSystemLink = () => {
+        const currentSlug = String(account.slug || "").trim();
+        systemLink.replaceChildren();
+        systemLink.removeAttribute("href");
+        systemLink.removeAttribute("target");
+        systemLink.removeAttribute("rel");
+        if (!currentSlug) {
+          systemLink.textContent = "Slug indisponível";
+          systemLink.setAttribute("aria-disabled", "true");
+          return;
+        }
+
+        systemLink.href = `https://conectazap-lojas.vercel.app/${encodeURIComponent(currentSlug)}`;
+        systemLink.target = "_blank";
+        systemLink.rel = "noopener noreferrer";
+        systemLink.removeAttribute("aria-disabled");
+        const icon = document.createElement("i");
+        icon.className = "fa-solid fa-arrow-up-right-from-square";
+        icon.setAttribute("aria-hidden", "true");
+        systemLink.append(document.createTextNode("Acessar sistema "), icon);
+      };
+      updateSystemLink();
 
       const whatsapp = document.createElement("a");
       whatsapp.className = "client-card__whatsapp";
@@ -378,7 +397,7 @@ async function DisplayAccounts() {
       card.append(header, fields, footer, feedback);
       container.appendChild(card);
 
-      const searchableText = [account.nome, phone, account.email, account._id, planName, statusLabel]
+      const searchableText = [account.nome, phone, account.email, account._id, account.slug, planName, statusLabel]
         .filter(Boolean)
         .join(" ")
         .toLocaleLowerCase("pt-BR");

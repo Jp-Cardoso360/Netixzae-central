@@ -5,6 +5,29 @@ const urlNetixZae = isLocalDevelopment
 const maxBannerSize = 5 * 1024 * 1024;
 const bannerInput = document.querySelector("#bannerUser");
 const bannerFeedback = document.querySelector("#bannerFeedback");
+const nomeInput = document.querySelector("#nome");
+const slugInput = document.querySelector("#slug");
+let slugFoiEditado = false;
+
+function gerarSlug(valor) {
+  return valor
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("pt-BR")
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+nomeInput.addEventListener("input", () => {
+  if (!slugFoiEditado) {
+    slugInput.value = gerarSlug(nomeInput.value);
+  }
+});
+
+slugInput.addEventListener("input", () => {
+  slugFoiEditado = Boolean(slugInput.value.trim());
+});
 
 function setBannerFeedback(message, state = "") {
   bannerFeedback.textContent = message;
@@ -42,6 +65,7 @@ async function criarConta() {
   const senha = document.getElementById("senha").value;
   const corSistema = document.getElementById("corSistema").value;
   const banner = bannerInput.files[0];
+  const slug = gerarSlug(slugInput.value || nome);
 
   const load = document.querySelector(".loading");
   const loadMensage = document.querySelector(".loadMensage");
@@ -49,6 +73,10 @@ async function criarConta() {
 
   if (!nome.trim() || !email.trim() || !senha || !tel.trim() || !corSistema) {
     setBannerFeedback("Preencha todos os campos para criar a conta.", "error");
+    return;
+  }
+  if (!slug) {
+    setBannerFeedback("Informe um nome válido para gerar o slug da loja.", "error");
     return;
   }
   if (senha.length < 4) {
@@ -74,6 +102,7 @@ async function criarConta() {
 
     const formData = new FormData();
     formData.append("nome", nome);
+    formData.append("slug", slug);
     formData.append("tel", tel);
     formData.append("email", email);
     formData.append("senha", senha);
@@ -103,8 +132,12 @@ async function criarConta() {
       const dados_link = document.querySelector(".link-res");
       const login_res = document.querySelector(".login-res");
       const nomeCliente = String(res.user.nome || nome || "cliente").trim();
-      const linkLogin = "https://meu-carrinho-login.netlify.app";
-      const linkSistema = `https://comercio-zap.netlify.app/${res.user._id}`;
+      const slugCriado = gerarSlug(String(res.user.slug || slug));
+      if (!slugCriado) {
+        throw new Error("A API não retornou um slug válido para a loja.");
+      }
+      const linkLogin = "https://conectazap-adm-sys-admin-cz-8826.vercel.app/";
+      const linkSistema = `https://conectazap-lojas.vercel.app/${encodeURIComponent(slugCriado)}`;
 
       if (typeof res.user.banner === "string" && res.user.banner.trim()) {
         bannerPreview.src = res.user.banner;
